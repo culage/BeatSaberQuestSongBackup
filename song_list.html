@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BeatSaber Song List</title>
+<link rel="stylesheet" href="./lib/fontawesome/css/all.css">
+<script src="./data/song_list.json"></script>
+<script src="./data/song_list.quest.json"></script>
+<script src="./lib/vue.min.js"></script>
+<script>
+Array.prototype.groupBy = function(convertKeyFunc) {
+	let groupList = [];
+	let group = null;
+	
+	let first = true;
+	for (const item of this) {
+		const currentKey = convertKeyFunc(item);
+		if (first) {
+			first = false;
+			group = { key: currentKey, items: [] };
+		} else if (currentKey != group.key) {
+			groupList.push(group);
+			group = { key: currentKey, items: [] };
+		}
+		group.items.push(item);
+	}
+	if (group !== null) { groupList.push(group); }
+
+	return groupList;
+}
+Array.prototype.sum = function(f) {
+	f = f || (i => i);
+	return this.reduce((sum, i) => sum + f(i), 0);
+}
+</script>
+</head>
+<body>
+
+<button style="font-size:larger;" onclick="vueApp.song_list_source = song_list;"       > ALL   </button>
+<button style="font-size:larger;" onclick="vueApp.song_list_source = song_list_quest;" > Quest </button>
+
+<div id="vue_app">
+
+<collapse-section title="Index">
+<ul>
+  <li v-for="group of song_list_groups"><a :href="'#'+escape(group.key)">{{ group.key }}</a></li>
+</ul>
+</collapse-section>
+
+<command-build-text :base-path="basePath" :selected-item="selectedItems" ref="commandBuild" @click-unselect="selectAll('', false)"></command-build-text>
+
+<section>
+<h2>SongList</h2>
+
+<div>Filter: <input type="text" v-model="filter"></div>
+<div>All Songs: {{ song_list.sum(i => i.show ? 1 : 0) }}</div>
+
+<div v-for="group of song_list_groups" v-show="group.items.some(i => i.show)">
+
+  <a :name="escape(group.key)"></a>
+  <h3>{{ group.key }}</h2>
+
+  <button style="font-size:smaller;" @click="selectAll(group.key, true)" > <i class="far fa-check-square"></i> select all </button>
+  <button style="font-size:smaller;" @click="selectAll(group.key, false)"> <i class="far fa-square"      ></i> unselect all </button>
+
+  <table border=1>
+  <tr v-for="(song, index) of group.items" v-show="song.show" :style="{backgroundColor: (song.selected ? 'lightpink' : 'inherit')}">
+    <td style="text-align:right">{{ index+1 }}</td>
+    <td><img :src="song.path + song.add_info._coverImageFilename" style="width:100px;height;100px;" loading="lazy"></td>
+    <td style="position:relative">
+       <span style="font-size:larger; font-weight:bold;">{{ song.title }}</span><br>
+       <b>Song author:</b> {{ song.add_info._songAuthorName }}　
+       <b>Level author:</b> {{ song.add_info._levelAuthorName }}<br>
+       <b>ID:</b> <span style="font-size:smaller;">{{ song.id }}</span> <br>
+       <b>DataFolder:</b>
+       <button style="font-size:smaller;" @click="$refs.commandBuild.copyPath(song.path)"> <i class="far fa-copy"></i> copy </button>
+       <button style="font-size:smaller;" @click="selectSong(song)"   > <i class="far fa-check-square"></i> select </button>
+       <div style="position:absolute; z-index:-1; left:calc(100% - 1.8em);top:calc(50% - 0.5em); line-height:1em; color:lightgray; font-size:60pt; font-weight:bold; width:2em; text-align:center;">{{ song.maxRank }}</div>
+       <br>
+    </td>
+    <td><single-play-audio v-model="playingAudio" :src="song.path + song.add_info._songFilename + '#t=' + song.add_info._previewStartTime"></single-play-audio></td>
+  </tr>
+  </table>
+
+</div>
+</section>
+
+</div>
+
+
+<script>
+
+//song_list = song_list.slice(0, 50);
+
+Vue.component('collapse-section', {
+	data: function() { return { isShow: false }; },
+	props: ["title"],
+	template: `
+		<nav>
+		<h2 @click="toggle">{{ title }} [+]</h2>
+		<div v-show="isShow"><slot></slot></div>
+		</nav>
+	`,
+	methods: {
+		toggle: function() { this.isShow = !this.isShow; }
+	},
+});
+
+Vue.component('command-build-text', {
+	data: function() { return {command: ""}; },
+	props: ["basePath", "selectedItem"],
+	template: `
+		<div>
+		<h2>Command</h2>
+		<textarea id="txtCommand" type="text" style="width:100%" v-model="command"></textarea>
+		<button style="font-size:smaller;" @click="createCode_FolderList"  > <i class="far fa-file-alt"></i> create code: FolderList </button>
+		<button style="font-size:smaller;" @click="createCode_MakeZip"     > <i class="far fa-file-alt"></i> create code: MakeZip    </button>
+		<button style="font-size:smaller;" @click="createCode_MakePlaylist"> <i class="far fa-file-alt"></i> create code: PlayList   </button>
+		<button style="font-size:smaller;" @click="$emit('click-unselect')"> <i class="far fa-square"  ></i> unselect ALL            </button>
+		</div>
+	`,
+	methods: {
+		makeWinPath: function(songPath) {
+			return this.basePath + songPath.replace(/^\./, "").replace(/\//g, "\\");
+		},
+		copyPath: function(songPath) {
+			var winPath = this.makeWinPath(songPath);
+			var textbox = document.querySelector("#txtCommand");
+			textbox.value = winPath;
+			textbox.select();
+			document.execCommand("copy");
+		},
+		createCode_FolderList: function() {
+			this.command = this.selectedItem.map(i=>this.makeWinPath(i.path)).join("\n");
+		},
+		createCode_MakeZip: function() {
+			var listStr = this.selectedItem.map(i=>this.makeWinPath(i.path)).map(i=>'"'+i+'"').join(",\n");
+			this.command = `#PowerShell
+$zipFolder = "${this.basePath}\\_work"
+mkdir -force $zipFolder
+$list = ${listStr}
+$list = $list | %{ if ($_.EndsWith("\\")) { $_.Substring(0, $_.Length-1) } else { $_ } }
+$list | %{ Compress-Archive -Force -CompressionLevel NoCompression "$_\\*" "$zipFolder\\$( [System.IO.Path]::GetFileName($_) ).zip" }`;
+		},
+		createCode_MakePlaylist: function() {
+			var listStr = this.selectedItem.map(i=>`{"hash":"${i.id.replace(/^custom_level_/,"")}"}`).join(",\n");
+			this.command = `\
+{
+"playlistTitle":"HOGE_PLAYLIST_TITLE",
+"songs":[
+${listStr}
+],
+"playlistAuthor":"HOGE_PLAYLIST_AUTHOR"
+}`;
+		},
+	},
+});
+
+Vue.component('single-play-audio', {
+	model: { prop: "playingAudio", event: "audioChange" },
+	props: ["src", "playingAudio"],
+	template: `<audio :src="src" controls @play="onPlay" preload="none"></audio>`,
+	computed: {
+		startTime: function(){
+			var match = this.src.match(/#t=([0-9.]+)/);
+			return (match ? match[1] : 0);
+		}
+	},
+	methods: {
+		onPlay: function(e) {
+			if (this.playingAudio && this.playingAudio !== this) {
+				this.playingAudio.pauseAndReset();
+			}
+			this.$emit('audioChange', this);
+		},
+		pauseAndReset: function() {
+			this.$el.pause();
+			this.$el.currentTime = this.startTime;
+		},
+	},
+});
+
+var FilterLogic = filter => item => {
+  var filterLower = filter.toLowerCase();
+  return item.title.toLowerCase().includes(filterLower) ||
+         item.add_info._songAuthorName.toLowerCase().includes(filterLower) ||
+         item.add_info._levelAuthorName.toLowerCase().includes(filterLower);
+};
+
+var vueApp = new Vue({
+  el: '#vue_app',
+  data: {
+    song_list_source: song_list,
+    filter: "",
+    playingAudio: null,
+    customSongs: "./data/BMBFData/CustomSongs/",
+    basePath: "「ここをdataフォルダ名に置き換えてください」",
+  },
+  watch: {
+    filter: function() {
+      this.song_list.forEach(i => {
+        i.show = FilterLogic(this.filter)(i);
+      });
+    }
+  },
+  computed: {
+    song_list: function() {
+      this.song_list_source.forEach(i => {
+        Vue.set(i, "show", true);
+        Vue.set(i, "selected", false);
+        Vue.set(i, "path", this.customSongs + i.dir + '/');
+      });
+      return this.song_list_source;
+    },
+    song_list_groups: function() { return this.song_list.groupBy(i => i.playlist); },
+    selectedItems: function() { return this.song_list.filter(i=>i.selected); },
+  },
+  methods: {
+    selectSong: function(song) {
+      this.song_list.filter(i => i.id == song.id).forEach(i => {
+        i.selected = !i.selected;
+      });
+    },
+    selectAll: function(groupKey, selectedFlag) {
+      this.song_list_groups.filter(g => groupKey=='' || g.key==groupKey ).forEach(g => {
+        g.items.forEach(i => {
+          i.selected = selectedFlag;
+        });
+      });
+    },
+  }
+});
+
+</script>
+
+</body>
+</html>
