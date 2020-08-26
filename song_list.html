@@ -52,7 +52,7 @@ Array.prototype.sum = function(f) {
 <section>
 <h2>SongList</h2>
 
-<div>Filter: <input type="text" v-model="filter"></div>
+<div>Filter: <input type="text" v-model="filter">　Play count: <input type="text" size="3" v-model="filterCountFm"> ～ <input type="text" size="3" v-model="filterCountTo"></div>
 <div>All Songs: {{ song_list.sum(i => i.show ? 1 : 0) }}</div>
 
 <div v-for="group of song_list_groups" v-show="group.items.some(i => i.show)">
@@ -70,7 +70,8 @@ Array.prototype.sum = function(f) {
     <td style="position:relative">
        <span style="font-size:larger; font-weight:bold;">{{ song.title }}</span><br>
        <b>Song author:</b> {{ song.add_info._songAuthorName }}　
-       <b>Level author:</b> {{ song.add_info._levelAuthorName }}<br>
+       <b>Level author:</b> {{ song.add_info._levelAuthorName }}　
+       <b>Play count:</b> {{ song.playCount }} <br>
        <b>ID:</b> <span style="font-size:smaller;">{{ song.id }}</span> <br>
        <b>DataFolder:</b>
        <button style="font-size:smaller;" @click="$refs.commandBuild.copyPath(song.path)"> <i class="far fa-copy"></i> copy </button>
@@ -180,11 +181,22 @@ Vue.component('single-play-audio', {
 	},
 });
 
-var FilterLogic = filter => item => {
+var FilterLogic = (filter, playCountFm, playCountTo) => (item) => {
   var filterLower = filter.toLowerCase();
-  return item.title.toLowerCase().includes(filterLower) ||
-         item.add_info._songAuthorName.toLowerCase().includes(filterLower) ||
-         item.add_info._levelAuthorName.toLowerCase().includes(filterLower);
+  var bFilterHit = item.title.toLowerCase().includes(filterLower) ||
+                   item.add_info._songAuthorName.toLowerCase().includes(filterLower) ||
+                   item.add_info._levelAuthorName.toLowerCase().includes(filterLower);
+  if (bFilterHit == false) { return false; }
+
+  if (playCountFm) {
+    if (item.playCount < playCountFm) { return false; }
+  }
+
+  if (playCountTo) {
+    if (item.playCount > playCountTo) { return false; }
+  }
+
+  return true;
 };
 
 var vueApp = new Vue({
@@ -192,16 +204,16 @@ var vueApp = new Vue({
   data: {
     song_list_source: song_list,
     filter: "",
+    filterCountFm: "",
+    filterCountTo: "",
     playingAudio: null,
     customSongs: "./data/BMBFData/CustomSongs/",
-    basePath: "「ここをdataフォルダ名に置き換えてください」",
+    basePath: ".",
   },
   watch: {
-    filter: function() {
-      this.song_list.forEach(i => {
-        i.show = FilterLogic(this.filter)(i);
-      });
-    }
+    filter       : function() { this.filterUpdate(); },
+    filterCountFm: function() { this.filterUpdate(); },
+    filterCountTo: function() { this.filterUpdate(); },
   },
   computed: {
     song_list: function() {
@@ -226,6 +238,11 @@ var vueApp = new Vue({
         g.items.forEach(i => {
           i.selected = selectedFlag;
         });
+      });
+    },
+    filterUpdate: function() {
+      this.song_list.forEach(i => {
+        i.show = FilterLogic(this.filter, this.filterCountFm, this.filterCountTo)(i);
       });
     },
   }

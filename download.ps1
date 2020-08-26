@@ -223,6 +223,7 @@ $player_data_hash = @{}
 $player_data.localPlayers[0].levelsStatsData | % { if ($_.highScore -gt 0) { $player_data_hash[$_.levelId] = $_ } }
 
 $song_list | Add-Member score 0
+$song_list | Add-Member playCount 0
 $song_list | Add-Member maxRank ""
 $song_list |
 % {
@@ -231,6 +232,7 @@ $song_list |
   $hit = $player_data_hash[$songID]
   if ($hit -ne $null) {
     $_.score = $hit.highScore
+    $_.playCount = $hit.playCount
     $_.maxRank = @("","D","C","B","A","S","SS")[$hit.maxRank]
   }
 }
