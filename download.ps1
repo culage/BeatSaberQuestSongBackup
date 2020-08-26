@@ -3,7 +3,7 @@
 $adb_path    = "●ここをadbのパスに書き換えてください●"   # ←通常は C:\Users\ユーザ名\AppData\Roaming\SideQuest\platform-tools\adb.exe です。
 $backup_path = ".\data"
 
-if ($adb_path -eq "●ここをadbのパスに書き換えてください●") {
+if (-not (Test-Path $adb_path)) {
    Write-Host "つかいかた.txt を読んでadb.exeパスの設定を行ってください。"
    exit
 }
