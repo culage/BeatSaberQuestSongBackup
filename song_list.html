@@ -76,6 +76,7 @@ Array.prototype.sum = function(f) {
        <b>DataFolder:</b>
        <button style="font-size:smaller;" @click="$refs.commandBuild.copyPath(song.path)"> <i class="far fa-copy"></i> copy </button>
        <button style="font-size:smaller;" @click="selectSong(song)"   > <i class="far fa-check-square"></i> select </button>
+       <div style="position:absolute; z-index:-1; left:calc(100% - 3.0em);top:calc(50% - 0.5em); line-height:1em; color:lightgray; font-size:60pt; font-weight:bold; width:2em; text-align:center; color:gold">{{ song.favorite ? "★" : "" }}</div>
        <div style="position:absolute; z-index:-1; left:calc(100% - 1.8em);top:calc(50% - 0.5em); line-height:1em; color:lightgray; font-size:60pt; font-weight:bold; width:2em; text-align:center;">{{ song.maxRank }}</div>
        <br>
     </td>

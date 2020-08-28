@@ -225,6 +225,7 @@ $player_data.localPlayers[0].levelsStatsData | % { if ($_.highScore -gt 0) { $pl
 $song_list | Add-Member score 0
 $song_list | Add-Member playCount 0
 $song_list | Add-Member maxRank ""
+$song_list | Add-Member favorite 0
 $song_list |
 % {
   $songID = $_.id.Trim()
@@ -234,6 +235,10 @@ $song_list |
     $_.score = $hit.highScore
     $_.playCount = $hit.playCount
     $_.maxRank = @("","D","C","B","A","S","SS")[$hit.maxRank]
+  }
+
+  if ($player_data.localPlayers[0].favoritesLevelIds -contains $songID) {
+    $_.favorite = 1
   }
 }
 
@@ -250,6 +255,7 @@ $song_list | ConvertTo-Json | Add-Content -Encoding UTF8 $song_list_json
 # ------------------------------------------------------------------------------------------
 
 # config.jsonからQuest実機側の曲一覧を作ってsong_list_quest.jsonに出力
+# ●注意：Convert-SongListが定義されている必要あり
 
 $local_json_path = "$backup_path\BMBFData\config.json"
 $song_list_json = "$backup_path\song_list.json"
