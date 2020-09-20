@@ -186,7 +186,8 @@ var FilterLogic = (filter, playCountFm, playCountTo) => (item) => {
   var filterLower = filter.toLowerCase();
   var bFilterHit = item.title.toLowerCase().includes(filterLower) ||
                    item.add_info._songAuthorName.toLowerCase().includes(filterLower) ||
-                   item.add_info._levelAuthorName.toLowerCase().includes(filterLower);
+                   item.add_info._levelAuthorName.toLowerCase().includes(filterLower) ||
+                   (filterLower == "★" && item.favorite);
   if (bFilterHit == false) { return false; }
 
   if (playCountFm) {
