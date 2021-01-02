@@ -245,13 +245,14 @@ var vueApp = new Vue({
       });
     },
     selectRandom: function(groupKey, selectedFlag) {
+      var showList = this.song_list.filter(i=>i.show);
       var selectNum = prompt("Select Num:");
-      var indexList = [...Array( this.song_list.length ).keys()];
+      var indexList = [...Array( showList.length ).keys()];
       indexList = this.shuffle(indexList);
       
       this.selectAll('', false);
       for (var i=0; i<selectNum; i++) {
-        this.song_list[ indexList[i] ].selected = true;
+        showList[ indexList[i] ].selected = true;
       }
     },
     shuffle(list) {
