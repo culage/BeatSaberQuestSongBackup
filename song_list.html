@@ -47,7 +47,7 @@ Array.prototype.sum = function(f) {
 </ul>
 </collapse-section>
 
-<command-build-text :base-path="basePath" :selected-item="selectedItems" ref="commandBuild" @click-unselect="selectAll('', false)"></command-build-text>
+<command-build-text :base-path="basePath" :selected-item="selectedItems" ref="commandBuild" @click-unselect="selectAll('', false)" @click-random-select="selectRandom()"></command-build-text>
 
 <section>
 <h2>SongList</h2>
@@ -115,10 +115,11 @@ Vue.component('command-build-text', {
 		<div>
 		<h2>Command</h2>
 		<textarea id="txtCommand" type="text" style="width:100%" v-model="command"></textarea>
-		<button style="font-size:smaller;" @click="createCode_FolderList"  > <i class="far fa-file-alt"></i> create code: FolderList </button>
-		<button style="font-size:smaller;" @click="createCode_MakeZip"     > <i class="far fa-file-alt"></i> create code: MakeZip    </button>
-		<button style="font-size:smaller;" @click="createCode_MakePlaylist"> <i class="far fa-file-alt"></i> create code: PlayList   </button>
-		<button style="font-size:smaller;" @click="$emit('click-unselect')"> <i class="far fa-square"  ></i> unselect ALL            </button>
+		<button style="font-size:smaller;" @click="createCode_FolderList"       > <i class="far fa-file-alt"></i> create code: FolderList </button>
+		<button style="font-size:smaller;" @click="createCode_MakeZip"          > <i class="far fa-file-alt"></i> create code: MakeZip    </button>
+		<button style="font-size:smaller;" @click="createCode_MakePlaylist"     > <i class="far fa-file-alt"></i> create code: PlayList   </button>
+		<button style="font-size:smaller;" @click="$emit('click-unselect')"     > <i class="far fa-square"  ></i> unselect ALL            </button>
+		<button style="font-size:smaller;" @click="$emit('click-random-select')"> <i class="fas fa-random"  ></i> select random           </button>
 		</div>
 	`,
 	methods: {
@@ -187,6 +188,7 @@ var FilterLogic = (filter, playCountFm, playCountTo) => (item) => {
   var bFilterHit = item.title.toLowerCase().includes(filterLower) ||
                    item.add_info._songAuthorName.toLowerCase().includes(filterLower) ||
                    item.add_info._levelAuthorName.toLowerCase().includes(filterLower) ||
+                   item.id.toLowerCase().includes(filterLower) ||
                    (filterLower == "★" && item.favorite);
   if (bFilterHit == false) { return false; }
 
@@ -241,6 +243,27 @@ var vueApp = new Vue({
           i.selected = selectedFlag;
         });
       });
+    },
+    selectRandom: function(groupKey, selectedFlag) {
+      var selectNum = prompt("Select Num:");
+      var indexList = [...Array( this.song_list.length ).keys()];
+      indexList = this.shuffle(indexList);
+      
+      this.selectAll('', false);
+      for (var i=0; i<selectNum; i++) {
+        this.song_list[ indexList[i] ].selected = true;
+      }
+    },
+    shuffle(list) {
+      // フィッシャー - イェーツのシャッフル
+      // https://qiita.com/may88seiji/items/69d5b05dff2c9d059155
+      for(var i = list.length -1; i>0; i--){
+        var r = Math.floor(Math.random()*(i+1));
+        var tmp = list[i];
+        list[i] = list[r];
+        list[r] = tmp;
+      }
+      return list;
     },
     filterUpdate: function() {
       this.song_list.forEach(i => {
