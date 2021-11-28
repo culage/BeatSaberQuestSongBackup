@@ -18,7 +18,7 @@ if (-not (Test-Path $adb_path)) {
 # songid_to_dir.txtにSongIDとフォルダ名の対応を追記
 
 $adb = $adb_path
-$remote_path = "/sdcard/BMBFData/CustomSongs"
+$remote_path = "/sdcard/ModData/com.beatgames.beatsaber/Mods/SongLoader/CustomLevels"
 $local_path = "$backup_path\BMBFData\CustomSongs"
 $songid_to_dir_path = "$backup_path\songid_to_dir.txt"
 
@@ -83,13 +83,12 @@ Run-Main
 
 # config.jsonから、song_list.txtへプレイリストとid、タイトルの対応を追記・更新する。
 # config.jsonに存在しない曲の情報も消さずに保持し続けることで、BMBFから消した曲もどのプレイリストにあるかを持ち続ける。
-# idとフォルダ名対応は「song_list.json作成」で情報追加する
+# idとフォルダ名対応は「Step3. song_list.json作成」で情報追加する
 
 $adb = $adb_path
 $remote_json_path = "/sdcard/BMBFData/config.json"
 $local_json_path = "$backup_path\BMBFData\config.json"
 $song_list_path = "$backup_path\song_list.txt"
-$local_path = "$backup_path\BMBFData\CustomSongs"
 
 function Run-Main() {
 	# config.jsonダウンロード　●不要ならコメントアウト
@@ -97,8 +96,6 @@ function Run-Main() {
 
 	# config.json から新しいリストを読み込み
 	$json_str = Get-Content -Encoding UTF8 $local_json_path
-	$json_str = $json_str -replace ",`"Mods`".*","" # 余計な文字が入っていてそのままではjsonとして読めないので修正
-	$json_str = $json_str + "}"
 	$song_list_new = $json_str | ConvertFrom-Json | Convert-SongList
 
 	# song_list.txt からリストを読み込み
@@ -138,6 +135,7 @@ function Convert-SongList {
 	
 	$list = @()
 	
+	# プレイリストにある曲追加
 	$json.Playlists |
 	%{
 		$playlist = $_.PlaylistName -replace "`n|`r",""
@@ -146,8 +144,21 @@ function Convert-SongList {
 			$list += @{
 				playlist    = $playlist;
 				title       = $_.SongName;
-				id          = $_.SongID;
+				id          = "custom_level_" + $_.Hash.ToLower();
 			}
+		}
+	}
+	
+	# プレイリストに含まれない曲追加
+	$playlist_songs_hash = $json.Playlists.SongList.Hash
+	$known_songs = $json.KnownSongs.psobject.properties.name | %{ $json.KnownSongs.$_ }
+	$unlist_songs = $known_songs | ?{ -not ($playlist_songs_hash -contains $_.Hash) }
+	$unlist_songs |
+	%{
+		$list += @{
+			playlist    = "Non-Playlisted";
+			title       = $_.SongName;
+			id          = "custom_level_" + $_.Hash.ToLower();
 		}
 	}
 	
@@ -248,6 +259,9 @@ $song_list = $song_list | ?{ $_.dir -ne "" }
 "let song_list = " | Set-Content -Encoding UTF8 $song_list_json
 $song_list | ConvertTo-Json | Add-Content -Encoding UTF8 $song_list_json
 
+# 世代バックアップ
+cp $local_player_data "$local_player_data.$(Get-Date -Format yyyyMMdd)"
+ls "$local_player_data.*" | sort CreationTime -desc | select -skip 5 | rm
 
 
 
@@ -263,8 +277,6 @@ $song_list_quest_json = "$backup_path\song_list.quest.json"
 
 # config.json から新しいリストを読み込み
 $json_str = Get-Content -Encoding UTF8 $local_json_path
-$json_str = $json_str -replace ",`"Mods`".*","" # 余計な文字が入っていてそのままではjsonとして読めないので修正
-$json_str = $json_str + "}"
 $config_list = $json_str | ConvertFrom-Json | Convert-SongList
 
 # song_list.jsonの読み込み
