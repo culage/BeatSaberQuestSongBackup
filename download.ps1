@@ -297,6 +297,7 @@ $config_list |
 }
 
 # ‘‚«o‚µ
+$song_list_quest = $song_list_quest | sort playlist
 $song_list_quest = $song_list_quest | ?{ $_.dir -ne "" }
 
 "let song_list_quest = " | Set-Content -Encoding UTF8 $song_list_quest_json
