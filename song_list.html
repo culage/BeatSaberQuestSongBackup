@@ -4,9 +4,19 @@
 <meta charset="utf-8">
 <title>BeatSaber Song List</title>
 <link rel="stylesheet" href="./lib/fontawesome/css/all.css">
+<link rel="stylesheet" href="./lib/vue-virtual-scroller.css">
+<style>
+.song-list {
+	display: flex;
+}
+.song-list > div {
+	border: solid 1px gray;
+}
+</style>
 <script src="./data/song_list.json"></script>
 <script src="./data/song_list.quest.json"></script>
 <script src="./lib/vue.min.js"></script>
+<script src="./lib/vue-virtual-scroller.min.js"></script>
 <script>
 Array.prototype.groupBy = function(convertKeyFunc) {
 	let groupList = [];
@@ -63,26 +73,32 @@ Array.prototype.sum = function(f) {
   <button style="font-size:smaller;" @click="selectAll(group.key, true)" > <i class="far fa-check-square"></i> select all </button>
   <button style="font-size:smaller;" @click="selectAll(group.key, false)"> <i class="far fa-square"      ></i> unselect all </button>
 
-  <table border=1>
-  <tr v-for="(song, index) of group.items" v-show="song.show" :style="{backgroundColor: (song.selected ? 'lightpink' : 'inherit')}">
-    <td style="text-align:right">{{ index+1 }}</td>
-    <td><img :src="song.path + song.add_info._coverImageFilename" style="width:100px;height;100px;" loading="lazy"></td>
-    <td style="position:relative">
-       <span style="font-size:larger; font-weight:bold;">{{ song.title }}</span><br>
-       <b>Song author:</b> {{ song.add_info._songAuthorName }}　
-       <b>Level author:</b> {{ song.add_info._levelAuthorName }}　
-       <b>Play count:</b> {{ song.playCount }} <br>
-       <b>ID:</b> <span style="font-size:smaller;">{{ song.id }}</span> <br>
-       <b>DataFolder:</b>
-       <button style="font-size:smaller;" @click="$refs.commandBuild.copyPath(song.path)"> <i class="far fa-copy"></i> copy </button>
-       <button style="font-size:smaller;" @click="selectSong(song)"   > <i class="far fa-check-square"></i> select </button>
-       <div style="position:absolute; z-index:-1; left:calc(100% - 3.0em);top:calc(50% - 0.5em); line-height:1em; color:lightgray; font-size:60pt; font-weight:bold; width:2em; text-align:center; color:gold">{{ song.favorite ? "★" : "" }}</div>
-       <div style="position:absolute; z-index:-1; left:calc(100% - 1.8em);top:calc(50% - 0.5em); line-height:1em; color:lightgray; font-size:60pt; font-weight:bold; width:2em; text-align:center;">{{ song.maxRank }}</div>
-       <br>
-    </td>
-    <td><single-play-audio v-model="playingAudio" :src="song.path + song.add_info._songFilename + '#t=' + song.add_info._previewStartTime"></single-play-audio></td>
-  </tr>
-  </table>
+  <recycle-scroller
+    :items="group.items.filter(x=>x.show)"
+    :item-size="110"
+    key-field="path"
+    v-slot="{ item, index }"
+    page-mode
+  >
+    <div :style="{backgroundColor: (item.selected ? 'lightpink' : 'inherit')}" class="song-list">
+      <div style="width:20px; text-align:right">{{ index+1 }}</div>
+      <div><img :src="item.path + item.add_info._coverImageFilename" style="width:100px;height;100px;" loading="lazy"></div>
+      <div style="flex: 1;position:relative;">
+         <span style="font-size:larger; font-weight:bold;">{{ item.title }}</span><br>
+         <b>Song author:</b> {{ item.add_info._songAuthorName }}　
+         <b>Level author:</b> {{ item.add_info._levelAuthorName }}　
+         <b>Play count:</b> {{ item.playCount }} <br>
+         <b>ID:</b> <span style="font-size:smaller;">{{ item.id }}</span> <br>
+         <b>DataFolder:</b>
+         <button style="font-size:smaller;" @click="$refs.commandBuild.copyPath(item.path)"> <i class="far fa-copy"></i> copy </button>
+         <button style="font-size:smaller;" @click="selectSong(item)"   > <i class="far fa-check-square"></i> select </button>
+         <div style="position:absolute; z-index:-1; left:calc(100% - 3.0em);top:calc(50% - 0.5em); line-height:1em; color:lightgray; font-size:60pt; font-weight:bold; width:2em; text-align:center; color:gold">{{ item.favorite ? "★" : "" }}</div>
+         <div style="position:absolute; z-index:-1; left:calc(100% - 1.8em);top:calc(50% - 0.5em); line-height:1em; color:lightgray; font-size:60pt; font-weight:bold; width:2em; text-align:center;">{{ item.maxRank }}</div>
+         <br>
+      </div>
+      <div><single-play-audio v-model="playingAudio" :src="item.path + item.add_info._songFilename + '#t=' + item.add_info._previewStartTime"></single-play-audio></div>
+    </div>
+  </recycle-scroller>
 
 </div>
 </section>
