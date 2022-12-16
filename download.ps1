@@ -143,7 +143,7 @@ function Convert-SongList {
 		%{
 			$list += @{
 				playlist    = $playlist;
-				title       = $_.SongName;
+				title       = $_.SongName -replace "`n|`r","";
 				id          = "custom_level_" + $_.Hash.ToLower();
 			}
 		}
@@ -157,7 +157,7 @@ function Convert-SongList {
 	%{
 		$list += @{
 			playlist    = "Non-Playlisted";
-			title       = $_.SongName;
+			title       = $_.SongName -replace "`n|`r","";
 			id          = "custom_level_" + $_.Hash.ToLower();
 		}
 	}
